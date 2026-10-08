@@ -2,7 +2,11 @@ package com.personalagent.client
 import android.app.admin.DeviceAdminReceiver
 import android.content.Context
 import android.content.Intent
-class AgentDeviceAdminReceiver:DeviceAdminReceiver(){
- override fun onEnabled(c:Context,i:Intent){super.onEnabled(c,i)}
- override fun onDisabled(c:Context,i:Intent){super.onDisabled(c,i)}
+import androidx.core.content.ContextCompat
+
+class AgentDeviceAdminReceiver : DeviceAdminReceiver() {
+    override fun onProfileProvisioningComplete(context: Context, intent: Intent) {
+        super.onProfileProvisioningComplete(context, intent)
+        ContextCompat.startForegroundService(context, Intent(context, AgentService::class.java))
+    }
 }
