@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "231949189294",
+    "project_id": "private-agent-98752",
+    "storage_bucket": "private-agent-98752.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:231949189294:android:c0441a03498fa1ed962d3f",
+        "android_client_info": {
+          "package_name": "com.personalagent.client"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBALuDDvkUNtO68bW1dX4mXPzy4AR5DIGg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
