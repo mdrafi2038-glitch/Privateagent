@@ -7,4 +7,7 @@
 <receiver android:name=".AgentDeviceAdminReceiver" android:permission="android.permission.BIND_DEVICE_ADMIN" android:exported="true"><meta-data android:name="android.app.device_admin" android:resource="@xml/device_admin"/><intent-filter><action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/></intent-filter></receiver>
 <receiver android:name=".BootReceiver" android:exported="true"><intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/><action android:name="android.intent.action.LOCKED_BOOT_COMPLETED"/></intent-filter></receiver>
 <service android:name=".AgentService" android:exported="false" android:foregroundServiceType="dataSync"/>
+<service android:name=".AgentMessagingService" android:exported="false">
+<intent-filter><action android:name="com.google.firebase.MESSAGING_EVENT"/></intent-filter>
+</service>
 </application></manifest>
