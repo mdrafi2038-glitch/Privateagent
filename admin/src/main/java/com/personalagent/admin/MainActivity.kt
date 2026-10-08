@@ -1,4 +1,15 @@
 package com.personalagent.admin
 import android.os.Bundle
+import android.widget.*
 import androidx.appcompat.app.AppCompatActivity
-class MainActivity:AppCompatActivity(){override fun onCreate(b:Bundle?){super.onCreate(b);val t=android.widget.TextView(this);t.text="Personal Agent Admin\\n\\nConfigure Firebase before use.";t.textSize=22f;t.setPadding(32,32,32,32);setContentView(t)}}
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.database.*
+
+class MainActivity:AppCompatActivity(){
+ private val auth by lazy{FirebaseAuth.getInstance()};private val db by lazy{FirebaseDatabase.getInstance().reference};private lateinit var list:LinearLayout
+ override fun onCreate(b:Bundle?){super.onCreate(b);showLogin()}
+ private fun showLogin(){val l=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(32,32,32,32)};l.addView(TextView(this).apply{text="Personal Agent Admin";textSize=28f});val email=EditText(this).apply{hint="Admin email"};val pass=EditText(this).apply{hint="Password";inputType=129};l.addView(email);l.addView(pass);l.addView(Button(this).apply{text="Login";setOnClickListener{auth.signInWithEmailAndPassword(email.text.toString(),pass.text.toString()).addOnSuccessListener{showDashboard()}.addOnFailureListener{Toast.makeText(this@MainActivity,"Login failed",Toast.LENGTH_SHORT).show()}}});setContentView(l)}
+ private fun showDashboard(){val scroll=ScrollView(this);list=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(24,24,24,24)};list.addView(TextView(this).apply{text="Devices";textSize=24f});scroll.addView(list);setContentView(scroll);db.child("devices").addValueEventListener(object:ValueEventListener{override fun onDataChange(s:DataSnapshot){list.removeViews(1,list.childCount-1);for(d in s.children)addDevice(d)};override fun onCancelled(e:DatabaseError){}})}
+ private fun addDevice(d:DataSnapshot){val uid=d.key?:return;val box=LinearLayout(this).apply{orientation=LinearLayout.VERTICAL;setPadding(0,18,0,18)};box.addView(TextView(this).apply{text=(d.child("manufacturer").getValue(String::class.java)?:"")+" "+(d.child("model").getValue(String::class.java)?:"")+"\nOnline: "+(d.child("online").getValue(Boolean::class.java)?:false)+"\nBattery: "+(d.child("battery").getValue(Long::class.java)?:-1)+"%";textSize=18f});for(x in listOf("LOCK_DEVICE","UNLOCK_DEVICE","RESTRICT_MODE","CLEAR_APPS"))box.addView(Button(this).apply{text=x;setOnClickListener{send(uid,x,null)}});box.addView(Button(this).apply{text="SEND MESSAGE";setOnClickListener{val e=EditText(this@MainActivity);e.hint="Message";android.app.AlertDialog.Builder(this@MainActivity).setTitle("Send message").setView(e).setPositiveButton("Send"){_,_->send(uid,"SEND_MESSAGE",e.text.toString())}.show()}});list.addView(box)}
+ private fun send(uid:String,type:String,message:String?){val id=db.child("commands").child(uid).push().key?:return;db.child("commands").child(uid).child(id).setValue(mapOf("type" to type,"message" to message,"createdAt" to ServerValue.TIMESTAMP,"status" to "pending")).addOnFailureListener{Toast.makeText(this,"Command failed",Toast.LENGTH_SHORT).show()}}
+}
