@@ -1,19 +1,20 @@
 package com.personalagent.client
 import android.app.*
-import android.app.admin.DevicePolicyManager
 import android.content.*
-import android.os.IBinder
+import android.os.*
 import androidx.core.app.NotificationCompat
 import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.*
+import java.util.UUID
 class AgentService:Service(){
- private val channel="agent"
- override fun onCreate(){super.onCreate()
-  getSystemService(NotificationManager::class.java).createNotificationChannel(NotificationChannel(channel,"Personal Agent",NotificationManager.IMPORTANCE_LOW))
-  startForeground(7,NotificationCompat.Builder(this,channel).setContentTitle("Personal Agent").setContentText("Device management active").setSmallIcon(android.R.drawable.ic_lock_lock).build())
-  register()
- }
- private fun register(){val a=FirebaseAuth.getInstance();val work={val id=getSharedPreferences("agent",0).getString("id",null)?:java.util.UUID.randomUUID().toString().also{getSharedPreferences("agent",0).edit().putString("id",it).apply()};FirebaseDatabase.getInstance().reference.child("devices").child(id).setValue(mapOf("id" to id,"manufacturer" to android.os.Build.MANUFACTURER,"model" to android.os.Build.MODEL,"android" to android.os.Build.VERSION.RELEASE,"lastSeen" to System.currentTimeMillis()))};if(a.currentUser!=null)work()else a.signInAnonymously().addOnSuccessListener{work()}}
+ private val channel="agent";private var deviceRef:DatabaseReference?=null;private var commandRef:DatabaseReference?=null;private var listener:ChildEventListener?=null
+ override fun onCreate(){super.onCreate();val n=getSystemService(NotificationManager::class.java);n.createNotificationChannel(NotificationChannel(channel,"Personal Agent",NotificationManager.IMPORTANCE_LOW));startForeground(7,NotificationCompat.Builder(this,channel).setContentTitle("Personal Agent").setContentText("Device management active").setSmallIcon(android.R.drawable.ic_lock_lock).build());authenticate()}
+ private fun authenticate(){val a=FirebaseAuth.getInstance();if(a.currentUser!=null)register(a)else a.signInAnonymously().addOnSuccessListener{register(a)}}
+ private fun register(a:FirebaseAuth){val p=getSharedPreferences("agent",0);val id=p.getString("id",null)?:UUID.randomUUID().toString().also{p.edit().putString("id",it).apply()};deviceRef=FirebaseDatabase.getInstance().reference.child("devices").child(id);deviceRef!!.updateChildren(mapOf("id" to id,"uid" to (a.currentUser?.uid?:""),"manufacturer" to Build.MANUFACTURER,"model" to Build.MODEL,"androidVersion" to Build.VERSION.RELEASE,"colorOSVersion" to prop("ro.build.version.oplusrom"),"battery" to battery(),"network" to network(),"online" to true,"lastSeen" to ServerValue.TIMESTAMP));commandRef=deviceRef!!.child("commands");listener=commandRef!!.addChildEventListener(object:ChildEventListener{override fun onChildAdded(s:DataSnapshot,p:String?){if(s.child("status").getValue(String::class.java)=="processed")return;AgentCommandHandler.handle(this@AgentService,s.child("type").getValue(String::class.java),s.child("message").getValue(String::class.java));s.ref.child("status").setValue("processed")};override fun onChildChanged(s:DataSnapshot,p:String?){};override fun onChildRemoved(s:DataSnapshot){};override fun onChildMoved(s:DataSnapshot,p:String?){};override fun onCancelled(e:DatabaseError){}})}
+ private fun battery()=getSystemService(BatteryManager::class.java).getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
+ private fun network()=if(getSystemService(android.net.ConnectivityManager::class.java).activeNetwork!=null)"online" else "offline"
+ private fun prop(n:String)=try{Class.forName("android.os.SystemProperties").getMethod("get",String::class.java).invoke(null,n) as String}catch(_:Exception){"unknown"}
  override fun onStartCommand(i:Intent?,f:Int,id:Int)=START_STICKY
+ override fun onDestroy(){listener?.let{commandRef?.removeEventListener(it)};super.onDestroy()}
  override fun onBind(i:Intent?):IBinder?=null
 }
