@@ -113,7 +113,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun watchFirebaseConnection() {
         connectionListener?.let { listener -> connectionRef?.removeEventListener(listener) }
-        val ref = FirebaseDatabase.getInstance().getReference(".info/connected")
+        val ref = FirebaseDatabase.getInstance("https://private-agent-98752-default-rtdb.firebaseio.com").getReference(".info/connected")
         connectionRef = ref
         val listener = object : ValueEventListener {
             override fun onDataChange(snapshot: com.google.firebase.database.DataSnapshot) {
