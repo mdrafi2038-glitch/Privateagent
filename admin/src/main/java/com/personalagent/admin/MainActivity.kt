@@ -21,7 +21,7 @@ import com.google.firebase.database.ValueEventListener
 
 class MainActivity : AppCompatActivity() {
     private val auth by lazy { FirebaseAuth.getInstance() }
-    private val db by lazy { FirebaseDatabase.getInstance().reference }
+    private val db by lazy { FirebaseDatabase.getInstance("https://private-agent-98752-default-rtdb.firebaseio.com").reference }
     private lateinit var list: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
