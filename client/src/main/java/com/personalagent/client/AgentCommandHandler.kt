@@ -27,6 +27,14 @@ object AgentCommandHandler {
                     c.getSharedPreferences("agent", 0).edit().putBoolean("restricted", true).apply()
                 }
             }
+            "UNRESTRICT_MODE" -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && d.isDeviceOwnerApp(c.packageName)) {
+                    d.clearUserRestriction(admin, android.os.UserManager.DISALLOW_FACTORY_RESET)
+                    d.clearUserRestriction(admin, android.os.UserManager.DISALLOW_SAFE_BOOT)
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) d.setStatusBarDisabled(admin, false)
+                    c.getSharedPreferences("agent", 0).edit().putBoolean("restricted", false).apply()
+                }
+            }
             "CLEAR_APPS" -> {
                 // Deliberately does not wipe every installed app. A package list must
                 // be supplied by a future managed-apps policy before data is cleared.
