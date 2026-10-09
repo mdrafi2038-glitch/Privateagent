@@ -2,7 +2,7 @@ name: Build Personal Agent APKs
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, master ]
   workflow_dispatch:
 
 permissions:
@@ -22,11 +22,6 @@ jobs:
           distribution: temurin
           java-version: '17'
 
-      - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          gradle-version: '8.7'
-
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
@@ -35,13 +30,14 @@ jobs:
           sdkmanager --install "platform-tools" "platforms;android-35" "build-tools;35.0.0"
           yes | sdkmanager --licenses >/dev/null || true
 
-      - name: Validate repository modules
+      - name: Validate repository
         run: |
           test -f settings.gradle || test -f settings.gradle.kts
+          test -f build.gradle || test -f build.gradle.kts
           test -d client
           test -d admin
-          test -f client/src/main/AndroidManifest.xml
-          test -f admin/src/main/AndroidManifest.xml
+          test -f client/build.gradle || test -f client/build.gradle.kts
+          test -f admin/build.gradle || test -f admin/build.gradle.kts
 
       - name: Build Client and Admin APKs
         run: |
