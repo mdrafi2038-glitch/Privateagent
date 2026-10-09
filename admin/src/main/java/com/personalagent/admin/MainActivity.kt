@@ -40,36 +40,48 @@ class MainActivity : AppCompatActivity() {
         val password = EditText(this).apply { hint = "Password"; inputType = 129 }
         layout.addView(email)
         layout.addView(password)
-        layout.addView(Button(this).apply {
-            text = "Login"
-            setOnClickListener {
-                val e = email.text.toString().trim()
-                val p = password.text.toString()
-                if (e.isBlank() || p.isBlank()) {
-                    Toast.makeText(this@MainActivity, "Enter email and password", Toast.LENGTH_SHORT).show()
-                    return@setOnClickListener
-                }
-                auth.signInWithEmailAndPassword(e, p)
-                    .addOnSuccessListener {
-                        val uid = auth.currentUser?.uid
-                        if (uid == null) {
-                            rejectAdmin("Could not verify account.")
-                        } else {
-                            db.child("admins").child(uid).get()
-                                .addOnSuccessListener { role ->
-                                    if (role.getValue(Boolean::class.java) == true) showDashboard()
-                                    else rejectAdmin("This account is not authorized as an administrator. Add admins/$uid = true in Realtime Database using a trusted admin setup.")
-                                }
-                                .addOnFailureListener { error ->
-                                    rejectAdmin("Could not verify admin role: ${error.localizedMessage ?: "database error"}")
-                                }
-                        }
-                    }
-                    .addOnFailureListener {
-                        Toast.makeText(this@MainActivity, "Login failed: ${it.localizedMessage ?: "check credentials"}", Toast.LENGTH_LONG).show()
-                    }
+        val loginButton = Button(this).apply { text = "Login" }
+        layout.addView(loginButton)
+        loginButton.setOnClickListener {
+            val e = email.text.toString().trim()
+            val p = password.text.toString()
+            if (e.isBlank() || p.isBlank()) {
+                Toast.makeText(this@MainActivity, "Enter email and password", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
-        })
+            loginButton.isEnabled = false
+            loginButton.text = "Signing in..."
+            auth.signInWithEmailAndPassword(e, p)
+                .addOnSuccessListener {
+                    val uid = auth.currentUser?.uid
+                    if (uid == null) {
+                        loginButton.isEnabled = true
+                        loginButton.text = "Login"
+                        rejectAdmin("Sign-in completed, but Firebase returned no user. Please try again.")
+                    } else {
+                        db.child("admins").child(uid).get()
+                            .addOnSuccessListener { role ->
+                                if (role.getValue(Boolean::class.java) == true) {
+                                    showDashboard()
+                                } else {
+                                    loginButton.isEnabled = true
+                                    loginButton.text = "Login"
+                                    rejectAdmin("Login succeeded, but this account is not an admin. In Realtime Database, a trusted project owner must authorize admins/$uid as boolean true. Do not enable public writes.")
+                                }
+                            }
+                            .addOnFailureListener { error ->
+                                loginButton.isEnabled = true
+                                loginButton.text = "Login"
+                                rejectAdmin("Could not read admin role. Check internet, Realtime Database URL and database rules. Details: ${error.localizedMessage ?: "unknown database error"}")
+                            }
+                    }
+                }
+                .addOnFailureListener { error ->
+                    loginButton.isEnabled = true
+                    loginButton.text = "Login"
+                    Toast.makeText(this@MainActivity, "Firebase login failed: ${error.localizedMessage ?: error.javaClass.simpleName}", Toast.LENGTH_LONG).show()
+                }
+        }
         setContentView(layout)
     }
 
