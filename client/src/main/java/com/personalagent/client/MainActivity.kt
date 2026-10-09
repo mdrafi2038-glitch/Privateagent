@@ -99,6 +99,10 @@ class MainActivity : AppCompatActivity() {
         lines += "Network: ${if (cm.activeNetwork != null) "PASS - connected" else "FAIL - no active network"}"
         lines += "Battery optimization: ${if (power.isIgnoringBatteryOptimizations(packageName)) "PASS - exempt" else "WARNING - not exempt"}"
         lines += "Firebase Auth: ${if (FirebaseAuth.getInstance().currentUser != null) "PASS - signed in" else "WARNING - no signed-in user yet"}"
+        val agentPrefs = getSharedPreferences("agent", 0)
+        lines += "Firebase Database: ${if (agentPrefs.getBoolean("databaseConnected", false)) "PASS - connected" else "WARNING - not connected yet"}"
+        lines += "Registered Device ID: ${agentPrefs.getString("id", "Not registered yet")}"
+        agentPrefs.getString("lastError", null)?.let { lines += "Last Firebase error: $it" }
         if (Build.VERSION.SDK_INT >= 33) {
             lines += "Notifications: ${if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) "PASS - allowed" else "WARNING - permission not granted"}"
         } else {
