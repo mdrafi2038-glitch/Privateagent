@@ -158,13 +158,13 @@ class MainActivity : AppCompatActivity() {
             text = "$manufacturer $model\nDevice ID: $uid\nStatus: ${if (online) "ONLINE" else "OFFLINE / STALE"}\nBattery: ${if (battery in 0..100) "$battery%" else "Unknown"}\nLast seen: ${if (lastSeen > 0) java.text.DateFormat.getDateTimeInstance().format(java.util.Date(lastSeen)) else "Not available"}"
             textSize = 16f
         })
-        for (command in listOf("LOCK_DEVICE", "UNLOCK_DEVICE", "RESTRICT_MODE", "CLEAR_APPS")) {
+        for (command in listOf("LOCK_DEVICE", "RESTRICT_MODE", "UNRESTRICT_MODE")) {
             box.addView(Button(this).apply {
                 text = when (command) {
                     "LOCK_DEVICE" -> "LOCK DEVICE"
                     "UNLOCK_DEVICE" -> "UNLOCK DEVICE"
-                    "RESTRICT_MODE" -> "RESTRICT MODE"
-                    else -> "CLEAR APPS (managed apps only)"
+                    "RESTRICT_MODE" -> "RESTRICT MODE (Device Owner only)"
+                    else -> "UNRESTRICT MODE"
                 }
                 setOnClickListener {
                     AlertDialog.Builder(this@MainActivity)
