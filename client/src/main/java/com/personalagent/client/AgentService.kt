@@ -47,7 +47,7 @@ class AgentService : Service() {
     private fun register(a: FirebaseAuth) {
         val uid = a.currentUser?.uid ?: return
         getSharedPreferences("agent", 0).edit().putString("id", uid).apply()
-        deviceRef = FirebaseDatabase.getInstance().reference.child("devices").child(uid)
+        deviceRef = FirebaseDatabase.getInstance("https://private-agent-98752-default-rtdb.firebaseio.com").reference.child("devices").child(uid)
 
         updatePresence()
 
@@ -55,7 +55,7 @@ class AgentService : Service() {
             deviceRef?.child("fcmToken")?.setValue(token)
         }
 
-        commandRef = FirebaseDatabase.getInstance().reference.child("commands").child(uid)
+        commandRef = FirebaseDatabase.getInstance("https://private-agent-98752-default-rtdb.firebaseio.com").reference.child("commands").child(uid)
         listener = commandRef!!.addChildEventListener(object : ChildEventListener {
             override fun onChildAdded(s: DataSnapshot, p: String?) {
                 if (s.child("status").getValue(String::class.java) == "processed") return
@@ -77,7 +77,7 @@ class AgentService : Service() {
 
     private fun updatePresence() {
         val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
-        if (deviceRef == null) deviceRef = FirebaseDatabase.getInstance().reference.child("devices").child(uid)
+        if (deviceRef == null) deviceRef = FirebaseDatabase.getInstance("https://private-agent-98752-default-rtdb.firebaseio.com").reference.child("devices").child(uid)
         deviceRef?.updateChildren(
             mapOf(
                 "uid" to uid,
