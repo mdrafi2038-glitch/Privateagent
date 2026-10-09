@@ -73,6 +73,11 @@ class MainActivity : AppCompatActivity() {
         root.addView(scroll)
         setContentView(root)
         runDiagnostics()
+        try {
+            ContextCompat.startForegroundService(this, Intent(this, AgentService::class.java))
+        } catch (_: Exception) {
+            reportView.text = reportView.text.toString() + "\\nWARNING: service could not auto-start; tap the service button."
+        }
     }
 
     private fun button(label: String, action: () -> Unit) = Button(this).apply {
