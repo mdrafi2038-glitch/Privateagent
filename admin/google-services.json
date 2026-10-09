@@ -2,7 +2,8 @@
   "project_info": {
     "project_number": "231949189294",
     "project_id": "private-agent-98752",
-    "storage_bucket": "private-agent-98752.firebasestorage.app"
+    "storage_bucket": "private-agent-98752.firebasestorage.app",
+    "firebase_url": "https://private-agent-98752-default-rtdb.firebaseio.com"
   },
   "client": [
     {
