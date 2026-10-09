@@ -2,6 +2,8 @@ package com.personalagent.admin
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -49,37 +51,59 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, "Enter email and password", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
+
+            val handler = Handler(Looper.getMainLooper())
+            var attemptFinished = false
+            fun finishWithError(message: String) {
+                if (attemptFinished || isFinishing || isDestroyed) return
+                attemptFinished = true
+                handler.removeCallbacksAndMessages(null)
+                loginButton.isEnabled = true
+                loginButton.text = "Login"
+                Toast.makeText(this@MainActivity, message, Toast.LENGTH_LONG).show()
+            }
+
             loginButton.isEnabled = false
-            loginButton.text = "Signing in..."
+            loginButton.text = "Connecting..."
+            handler.postDelayed({
+                finishWithError("Firebase did not respond within 20 seconds. Check internet, google-services.json, Firebase Authentication Email/Password provider, and Firebase project configuration.")
+            }, 20_000L)
+
             auth.signInWithEmailAndPassword(e, p)
                 .addOnSuccessListener {
+                    if (attemptFinished || isFinishing || isDestroyed) return@addOnSuccessListener
+                    handler.removeCallbacksAndMessages(null)
                     val uid = auth.currentUser?.uid
                     if (uid == null) {
-                        loginButton.isEnabled = true
-                        loginButton.text = "Login"
-                        rejectAdmin("Sign-in completed, but Firebase returned no user. Please try again.")
-                    } else {
-                        db.child("admins").child(uid).get()
-                            .addOnSuccessListener { role ->
-                                if (role.getValue(Boolean::class.java) == true) {
-                                    showDashboard()
-                                } else {
-                                    loginButton.isEnabled = true
-                                    loginButton.text = "Login"
-                                    rejectAdmin("Login succeeded, but this account is not an admin. In Realtime Database, a trusted project owner must authorize admins/$uid as boolean true. Do not enable public writes.")
-                                }
-                            }
-                            .addOnFailureListener { error ->
+                        finishWithError("Firebase sign-in returned no user. Please try again.")
+                        return@addOnSuccessListener
+                    }
+
+                    loginButton.text = "Checking admin access..."
+                    handler.postDelayed({
+                        finishWithError("Admin permission check timed out. Check Realtime Database URL, internet and database rules.")
+                    }, 15_000L)
+
+                    db.child("admins").child(uid).get()
+                        .addOnSuccessListener { role ->
+                            if (attemptFinished || isFinishing || isDestroyed) return@addOnSuccessListener
+                            handler.removeCallbacksAndMessages(null)
+                            if (role.getValue(Boolean::class.java) == true) {
+                                attemptFinished = true
+                                showDashboard()
+                            } else {
+                                attemptFinished = true
                                 loginButton.isEnabled = true
                                 loginButton.text = "Login"
-                                rejectAdmin("Could not read admin role. Check internet, Realtime Database URL and database rules. Details: ${error.localizedMessage ?: "unknown database error"}")
+                                rejectAdmin("Firebase login succeeded, but this account is not authorized as admin. Ask the project owner to securely grant the admin role.")
                             }
-                    }
+                        }
+                        .addOnFailureListener { error ->
+                            finishWithError("Could not check admin access: ${error.localizedMessage ?: "database error"}. Check Realtime Database URL and rules.")
+                        }
                 }
                 .addOnFailureListener { error ->
-                    loginButton.isEnabled = true
-                    loginButton.text = "Login"
-                    Toast.makeText(this@MainActivity, "Firebase login failed: ${error.localizedMessage ?: error.javaClass.simpleName}", Toast.LENGTH_LONG).show()
+                    finishWithError("Firebase login failed: ${error.localizedMessage ?: error.javaClass.simpleName}")
                 }
         }
         setContentView(layout)
