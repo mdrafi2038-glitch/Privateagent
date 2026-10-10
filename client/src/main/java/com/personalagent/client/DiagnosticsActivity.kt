@@ -4,6 +4,8 @@ import android.app.Activity
 import android.app.admin.DevicePolicyManager
 import android.content.ComponentName
 import android.content.Context
+import android.content.Intent
+import android.provider.Settings
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
@@ -41,6 +43,20 @@ class DiagnosticsActivity : AppCompatActivity() {
         root.addView(Button(this).apply {
             text = "Run tests again"
             setOnClickListener { runChecks() }
+        })
+        root.addView(Button(this).apply {
+            text = "Open Battery Optimization Settings"
+            setOnClickListener {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            }
+        })
+        root.addView(Button(this).apply {
+            text = "Open App Settings"
+            setOnClickListener {
+                startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                    data = android.net.Uri.parse("package:$packageName")
+                })
+            }
         })
         results = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         root.addView(results)
@@ -87,8 +103,9 @@ class DiagnosticsActivity : AppCompatActivity() {
             if (owner) "This app is provisioned as Device Owner." else "Not provisioned as Device Owner. Factory reset is not required for these basic diagnostics; owner-only controls cannot be validated here.")
 
         val auth = FirebaseAuth.getInstance()
-        addResult("Firebase Authentication", if (auth.currentUser != null) "PASS" else "WARNING",
-            if (auth.currentUser != null) "A Firebase user session exists." else "No Firebase session yet. Start the Agent service and check google-services.json / Firebase Auth settings.")
+        val user = auth.currentUser
+        addResult("Firebase Authentication", if (user != null) "PASS" else "WARNING",
+            if (user != null) "Firebase session exists. UID: ${user.uid.take(12)}… Anonymous: ${user.isAnonymous}" else "No Firebase session yet. Check authentication setup.")
 
         FirebaseDatabase.getInstance().getReference(".info/connected")
             .addListenerForSingleValueEvent(object : ValueEventListener {
@@ -98,7 +115,7 @@ class DiagnosticsActivity : AppCompatActivity() {
                         if (connected) "Realtime Database reports an active connection." else "Database is not connected. Check internet, database URL, Firebase configuration and rules.")
                 }
                 override fun onCancelled(error: DatabaseError) {
-                    addResult("Realtime Database", "FAIL", "Database check cancelled: ${error.message}")
+                    addResult("Realtime Database", "FAIL", "Database check cancelled. Code: ${error.code}, Message: ${error.message}")
                 }
             })
 
@@ -110,6 +127,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             .addOnFailureListener { error ->
                 addResult("Firebase Cloud Messaging", "FAIL", "Could not retrieve token: ${error.localizedMessage ?: "unknown error"}")
             }
+
+        addResult("Permission Center", "INFO", "Use the buttons above to review app settings and battery optimization. Device Admin and Device Owner are checked separately.")
 
         addResult("Notifications permission", if (Build.VERSION.SDK_INT < 33 || checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) "PASS" else "WARNING",
             if (Build.VERSION.SDK_INT < 33 || checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == android.content.pm.PackageManager.PERMISSION_GRANTED) "Notification permission is available or not runtime-gated on this Android version." else "Notifications permission has not been granted.")

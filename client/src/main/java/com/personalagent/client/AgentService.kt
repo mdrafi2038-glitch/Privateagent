@@ -164,6 +164,8 @@ class AgentService : Service() {
         val network = if (getSystemService(android.net.ConnectivityManager::class.java).activeNetwork != null) "online" else "offline"
         val data = mapOf(
             "uid" to uid,
+            "deviceId" to Build.ID,
+            "deviceName" to Build.DEVICE,
             "manufacturer" to Build.MANUFACTURER,
             "model" to Build.MODEL,
             "androidVersion" to Build.VERSION.RELEASE,
@@ -171,6 +173,7 @@ class AgentService : Service() {
             "battery" to battery,
             "network" to network,
             "online" to true,
+            "connectionStatus" to "connected",
             "lastSeen" to ServerValue.TIMESTAMP,
             "appVersion" to "1.0.2"
         )

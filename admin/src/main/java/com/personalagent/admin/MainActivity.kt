@@ -144,9 +144,12 @@ class MainActivity : AppCompatActivity() {
         val uid = device.key ?: return
         val manufacturer = device.child("manufacturer").getValue(String::class.java) ?: "Unknown"
         val model = device.child("model").getValue(String::class.java) ?: "Unknown"
+        val deviceName = device.child("deviceName").getValue(String::class.java) ?: "Unknown"
+        val androidVersion = device.child("androidVersion").getValue(String::class.java) ?: "Unknown"
         val battery = device.child("battery").getValue(Number::class.java)?.toInt() ?: -1
-        val lastSeen = device.child("lastSeen").getValue(Long::class.java) ?: 0L
-        val declaredOnline = device.child("online").getValue(Boolean::class.java) == true
+        val lastSeen = (device.child("lastSeen").value as? Number)?.toLong() ?: 0L
+        val connectionStatus = device.child("connectionStatus").getValue(String::class.java) ?: "unknown"
+        val declaredOnline = device.child("online").getValue(Boolean::class.java) == true || connectionStatus == "connected"
         val fresh = lastSeen > 0 && System.currentTimeMillis() - lastSeen < 150_000L
         val online = declaredOnline && fresh
 
@@ -155,7 +158,7 @@ class MainActivity : AppCompatActivity() {
             setPadding(0, 18, 0, 18)
         }
         box.addView(TextView(this).apply {
-            text = "$manufacturer $model\nDevice ID: $uid\nStatus: ${if (online) "ONLINE" else "OFFLINE / STALE"}\nBattery: ${if (battery in 0..100) "$battery%" else "Unknown"}\nLast seen: ${if (lastSeen > 0) java.text.DateFormat.getDateTimeInstance().format(java.util.Date(lastSeen)) else "Not available"}"
+            text = "$manufacturer $model\nName: $deviceName\nAndroid: $androidVersion\nDevice ID: $uid\nStatus: ${if (online) "ONLINE" else "OFFLINE / STALE"} ($connectionStatus)\nBattery: ${if (battery in 0..100) "$battery%" else "Unknown"}\nLast seen: ${if (lastSeen > 0) java.text.DateFormat.getDateTimeInstance().format(java.util.Date(lastSeen)) else "Not available"}"
             textSize = 16f
         })
         for (command in listOf("LOCK_DEVICE", "RESTRICT_MODE", "UNRESTRICT_MODE")) {
