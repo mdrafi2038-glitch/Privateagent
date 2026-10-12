@@ -141,7 +141,7 @@ class MainActivity : AppCompatActivity() {
         })
         val deviceIdInput = EditText(this).apply {
             hint = "Client Registered Device ID"
-            singleLine = true
+            maxLines = 1
         }
         connectBox.addView(deviceIdInput)
         val connectButton = Button(this).apply { text = "CONNECT CLIENT BY ID" }
