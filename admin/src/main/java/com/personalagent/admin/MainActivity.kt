@@ -24,6 +24,7 @@ class MainActivity : AppCompatActivity() {
     private val thisPhoneId by lazy { android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "" }
     private val db by lazy { FirebaseDatabase.getInstance("https://private-agent-98752-default-rtdb.firebaseio.com").reference }
     private lateinit var list: LinearLayout
+    private var selectedDeviceId: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -117,20 +118,94 @@ class MainActivity : AppCompatActivity() {
 
     private fun showDashboard() {
         val scroll = ScrollView(this)
-        list = LinearLayout(this).apply {
+        val page = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(24, 24, 24, 24)
         }
-        list.addView(TextView(this).apply { text = "Personal Agent — Devices"; textSize = 24f })
-        scroll.addView(list)
+        page.addView(TextView(this).apply {
+            text = "Personal Agent — Devices"
+            textSize = 24f
+        })
+
+        val connectBox = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(0, 20, 0, 20)
+        }
+        connectBox.addView(TextView(this).apply {
+            text = "Manual Client connection"
+            textSize = 18f
+        })
+        connectBox.addView(TextView(this).apply {
+            text = "On the Client phone, tap ‘Run device checks’ and copy the ‘Registered Device ID’ from its report. Paste that ID below."
+            textSize = 14f
+        })
+        val deviceIdInput = EditText(this).apply {
+            hint = "Client Registered Device ID"
+            singleLine = true
+        }
+        connectBox.addView(deviceIdInput)
+        connectBox.addView(Button(this).apply {
+            text = "CONNECT CLIENT BY ID"
+            setOnClickListener {
+                val uid = deviceIdInput.text.toString().trim()
+                if (uid.isBlank()) {
+                    Toast.makeText(this@MainActivity, "Enter the Registered Device ID from Client diagnostics.", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+                this.text = "Connecting..."
+                this.isEnabled = false
+                db.child("devices").child(uid).get()
+                    .addOnSuccessListener { device ->
+                        this.isEnabled = true
+                        this.text = "CONNECT CLIENT BY ID"
+                        if (!device.exists()) {
+                            Toast.makeText(this@MainActivity, "Client not found. Start Agent Service on the Client phone, run device checks, and copy its Registered Device ID exactly.", Toast.LENGTH_LONG).show()
+                        } else {
+                            selectedDeviceId = uid
+                            renderDeviceSnapshot(device)
+                            Toast.makeText(this@MainActivity, "Connected to selected Client: " + (device.child("manufacturer").getValue(String::class.java) ?: "Unknown") + " " + (device.child("model").getValue(String::class.java) ?: ""), Toast.LENGTH_LONG).show()
+                        }
+                    }
+                    .addOnFailureListener { error ->
+                        this.isEnabled = true
+                        this.text = "CONNECT CLIENT BY ID"
+                        Toast.makeText(this@MainActivity, "Could not connect: " + (error.localizedMessage ?: "Check internet and Firebase rules."), Toast.LENGTH_LONG).show()
+                    }
+            }
+        })
+        connectBox.addView(Button(this).apply {
+            text = "SHOW ALL CLIENTS"
+            setOnClickListener {
+                selectedDeviceId = null
+                refreshDeviceList()
+            }
+        })
+        page.addView(connectBox)
+
+        list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        page.addView(list)
+        scroll.addView(page)
         setContentView(scroll)
         db.child("devices").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
-                list.removeViews(1, list.childCount - 1)
+                list.removeAllViews()
+                val chosen = selectedDeviceId
+                if (chosen != null) {
+                    val device = snapshot.child(chosen)
+                    if (device.exists()) {
+                        addDevice(device)
+                    } else {
+                        list.addView(TextView(this@MainActivity).apply {
+                            text = "Selected Client is not currently registered. Check its Registered Device ID and Firebase status."
+                            textSize = 16f
+                        })
+                    }
+                    return
+                }
                 var visibleDevices = 0
                 for (device in snapshot.children) {
-                    // Do not list this physical phone as a remote target if the Client APK
-                    // was also installed here. Client records use Android ID, not Build.ID.
                     val reportedDeviceId = device.child("deviceId").getValue(String::class.java).orEmpty()
                     if (thisPhoneId.isNotBlank() && reportedDeviceId == thisPhoneId) continue
                     addDevice(device)
@@ -141,7 +216,7 @@ class MainActivity : AppCompatActivity() {
                         text = if (snapshot.childrenCount == 0L) {
                             "No registered Client devices yet. On the target phone, open Client App, tap ‘Start / restart Agent Service’, then run device checks."
                         } else {
-                            "No remote Client devices are currently registered. If Client was installed on this Admin phone, it is hidden here. Start the Client service on the target phone and check its Firebase Auth / Database status."
+                            "No remote Client devices are currently registered. Use Manual Client connection above with the Registered Device ID from the target Client phone."
                         }
                         textSize = 16f
                     })
@@ -151,6 +226,33 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, "Could not load devices: ${error.message}", Toast.LENGTH_LONG).show()
             }
         })
+    }
+
+    private fun renderDeviceSnapshot(device: DataSnapshot) {
+        list.removeAllViews()
+        addDevice(device)
+    }
+
+    private fun refreshDeviceList() {
+        db.child("devices").get()
+            .addOnSuccessListener { snapshot ->
+                list.removeAllViews()
+                var visibleDevices = 0
+                for (device in snapshot.children) {
+                    val reportedDeviceId = device.child("deviceId").getValue(String::class.java).orEmpty()
+                    if (thisPhoneId.isNotBlank() && reportedDeviceId == thisPhoneId) continue
+                    addDevice(device)
+                    visibleDevices++
+                }
+                if (visibleDevices == 0) {
+                    list.addView(TextView(this).apply {
+                        text = "No registered Client devices yet. Start Agent Service on the target phone and run device checks."
+                    })
+                }
+            }
+            .addOnFailureListener { error ->
+                Toast.makeText(this, "Could not refresh devices: ${error.localizedMessage ?: "database error"}", Toast.LENGTH_LONG).show()
+            }
     }
 
     private fun addDevice(device: DataSnapshot) {
