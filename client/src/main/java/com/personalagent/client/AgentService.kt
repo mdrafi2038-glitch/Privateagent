@@ -3,6 +3,7 @@ package com.personalagent.client
 import android.app.*
 import android.content.*
 import android.os.*
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.*
@@ -164,7 +165,7 @@ class AgentService : Service() {
         val network = if (getSystemService(android.net.ConnectivityManager::class.java).activeNetwork != null) "online" else "offline"
         val data = mapOf(
             "uid" to uid,
-            "deviceId" to Build.ID,
+            "deviceId" to (Settings.Secure.getString(contentResolver, Settings.Secure.ANDROID_ID) ?: Build.ID),
             "deviceName" to Build.DEVICE,
             "manufacturer" to Build.MANUFACTURER,
             "model" to Build.MODEL,
