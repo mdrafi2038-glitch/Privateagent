@@ -21,6 +21,7 @@ import com.google.firebase.database.ValueEventListener
 
 class MainActivity : AppCompatActivity() {
     private val auth by lazy { FirebaseAuth.getInstance() }
+    private val thisPhoneId by lazy { android.provider.Settings.Secure.getString(contentResolver, android.provider.Settings.Secure.ANDROID_ID) ?: "" }
     private val db by lazy { FirebaseDatabase.getInstance("https://private-agent-98752-default-rtdb.firebaseio.com").reference }
     private lateinit var list: LinearLayout
 
@@ -126,10 +127,22 @@ class MainActivity : AppCompatActivity() {
         db.child("devices").addValueEventListener(object : ValueEventListener {
             override fun onDataChange(snapshot: DataSnapshot) {
                 list.removeViews(1, list.childCount - 1)
-                for (device in snapshot.children) addDevice(device)
-                if (snapshot.childrenCount == 0L) {
+                var visibleDevices = 0
+                for (device in snapshot.children) {
+                    // Do not list this physical phone as a remote target if the Client APK
+                    // was also installed here. Client records use Android ID, not Build.ID.
+                    val reportedDeviceId = device.child("deviceId").getValue(String::class.java).orEmpty()
+                    if (thisPhoneId.isNotBlank() && reportedDeviceId == thisPhoneId) continue
+                    addDevice(device)
+                    visibleDevices++
+                }
+                if (visibleDevices == 0) {
                     list.addView(TextView(this@MainActivity).apply {
-                        text = "No registered devices yet. Install and open the Client app on a test phone."
+                        text = if (snapshot.childrenCount == 0L) {
+                            "No registered Client devices yet. On the target phone, open Client App, tap ‘Start / restart Agent Service’, then run device checks."
+                        } else {
+                            "No remote Client devices are currently registered. If Client was installed on this Admin phone, it is hidden here. Start the Client service on the target phone and check its Firebase Auth / Database status."
+                        }
                         textSize = 16f
                     })
                 }
