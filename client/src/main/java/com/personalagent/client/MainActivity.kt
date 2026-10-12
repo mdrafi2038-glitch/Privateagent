@@ -72,32 +72,14 @@ class MainActivity : AppCompatActivity() {
         scroll.addView(content)
         root.addView(scroll)
         setContentView(root)
-        ensureFirebaseAuth()
-        runDiagnostics()
+        // AgentService is the single owner of Firebase anonymous sign-in.
+        // Signing in here as well can race the service and create two UIDs.
         try {
             ContextCompat.startForegroundService(this, Intent(this, AgentService::class.java))
         } catch (_: Exception) {
             reportView.text = reportView.text.toString() + "\\nWARNING: service could not auto-start; tap the service button."
         }
-    }
-
-    private fun ensureFirebaseAuth() {
-        val auth = FirebaseAuth.getInstance()
-        if (auth.currentUser != null) return
-
-        auth.signInAnonymously()
-            .addOnSuccessListener {
-                getSharedPreferences("agent", 0).edit()
-                    .putString("lastError", null)
-                    .apply()
-                runDiagnostics()
-            }
-            .addOnFailureListener { error ->
-                getSharedPreferences("agent", 0).edit()
-                    .putString("lastError", "Auth failed: ${error.localizedMessage ?: error.javaClass.simpleName}")
-                    .apply()
-                runDiagnostics()
-            }
+        runDiagnostics()
     }
 
     private fun button(label: String, action: () -> Unit) = Button(this).apply {
