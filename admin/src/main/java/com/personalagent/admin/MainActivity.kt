@@ -144,35 +144,34 @@ class MainActivity : AppCompatActivity() {
             singleLine = true
         }
         connectBox.addView(deviceIdInput)
-        connectBox.addView(Button(this).apply {
-            text = "CONNECT CLIENT BY ID"
-            setOnClickListener {
-                val uid = deviceIdInput.text.toString().trim()
-                if (uid.isBlank()) {
-                    Toast.makeText(this@MainActivity, "Enter the Registered Device ID from Client diagnostics.", Toast.LENGTH_LONG).show()
-                    return@setOnClickListener
-                }
-                this.text = "Connecting..."
-                this.isEnabled = false
-                db.child("devices").child(uid).get()
-                    .addOnSuccessListener { device ->
-                        this.isEnabled = true
-                        this.text = "CONNECT CLIENT BY ID"
-                        if (!device.exists()) {
-                            Toast.makeText(this@MainActivity, "Client not found. Start Agent Service on the Client phone, run device checks, and copy its Registered Device ID exactly.", Toast.LENGTH_LONG).show()
-                        } else {
-                            selectedDeviceId = uid
-                            renderDeviceSnapshot(device)
-                            Toast.makeText(this@MainActivity, "Connected to selected Client: " + (device.child("manufacturer").getValue(String::class.java) ?: "Unknown") + " " + (device.child("model").getValue(String::class.java) ?: ""), Toast.LENGTH_LONG).show()
-                        }
-                    }
-                    .addOnFailureListener { error ->
-                        this.isEnabled = true
-                        this.text = "CONNECT CLIENT BY ID"
-                        Toast.makeText(this@MainActivity, "Could not connect: " + (error.localizedMessage ?: "Check internet and Firebase rules."), Toast.LENGTH_LONG).show()
-                    }
+        val connectButton = Button(this).apply { text = "CONNECT CLIENT BY ID" }
+        connectButton.setOnClickListener {
+            val uid = deviceIdInput.text.toString().trim()
+            if (uid.isBlank()) {
+                Toast.makeText(this@MainActivity, "Enter the Registered Device ID from Client diagnostics.", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
             }
-        })
+            connectButton.text = "Connecting..."
+            connectButton.isEnabled = false
+            db.child("devices").child(uid).get()
+                .addOnSuccessListener { device ->
+                    connectButton.isEnabled = true
+                    connectButton.text = "CONNECT CLIENT BY ID"
+                    if (!device.exists()) {
+                        Toast.makeText(this@MainActivity, "Client not found. Start Agent Service on the Client phone, run device checks, and copy its Registered Device ID exactly.", Toast.LENGTH_LONG).show()
+                    } else {
+                        selectedDeviceId = uid
+                        renderDeviceSnapshot(device)
+                        Toast.makeText(this@MainActivity, "Connected to selected Client: " + (device.child("manufacturer").getValue(String::class.java) ?: "Unknown") + " " + (device.child("model").getValue(String::class.java) ?: ""), Toast.LENGTH_LONG).show()
+                    }
+                }
+                .addOnFailureListener { error ->
+                    connectButton.isEnabled = true
+                    connectButton.text = "CONNECT CLIENT BY ID"
+                    Toast.makeText(this@MainActivity, "Could not connect: " + (error.localizedMessage ?: "Check internet and Firebase rules."), Toast.LENGTH_LONG).show()
+                }
+        }
+        connectBox.addView(connectButton)
         connectBox.addView(Button(this).apply {
             text = "SHOW ALL CLIENTS"
             setOnClickListener {
